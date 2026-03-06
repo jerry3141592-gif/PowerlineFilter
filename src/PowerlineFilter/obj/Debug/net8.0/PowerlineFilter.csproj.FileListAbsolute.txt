@@ -1,12 +1,12 @@
-/workspace/repo_temp/src/PowerlineFilter/bin/Debug/net8.0/PowerlineFilter.deps.json
-/workspace/repo_temp/src/PowerlineFilter/bin/Debug/net8.0/PowerlineFilter.dll
-/workspace/repo_temp/src/PowerlineFilter/bin/Debug/net8.0/PowerlineFilter.pdb
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.GeneratedMSBuildEditorConfig.editorconfig
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.AssemblyInfoInputs.cache
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.AssemblyInfo.cs
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.csproj.CoreCompileInputs.cache
+/workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.sourcelink.json
+/workspace/repo_temp/src/PowerlineFilter/bin/Debug/net8.0/PowerlineFilter.deps.json
+/workspace/repo_temp/src/PowerlineFilter/bin/Debug/net8.0/PowerlineFilter.dll
+/workspace/repo_temp/src/PowerlineFilter/bin/Debug/net8.0/PowerlineFilter.pdb
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.dll
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/refint/PowerlineFilter.dll
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.pdb
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/ref/PowerlineFilter.dll
-/workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.sourcelink.json

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PowerlineFilter.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b32f4cbaa3c9bc92e435e6ba2fd646e3dab70cb6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+25745ec278da4ccab2cc605642e7bc22d0eebe2b")]
 [assembly: System.Reflection.AssemblyProductAttribute("PowerlineFilter.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PowerlineFilter.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

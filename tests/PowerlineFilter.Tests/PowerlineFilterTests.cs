@@ -35,8 +35,8 @@ public class PowerlineFilterTests
     [Fact]
     public void ProcessSample_With50HzInterference_ReducesInterference()
     {
-        // Arrange
-        var filter = new PowerlineFilterClass(SamplingFrequency);
+        // Arrange - use 0 lookahead for real-time test
+        var filter = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 0);
         double interferenceAmplitude = 1.0;
         double signalAmplitude = 0.1;
         double interferenceFreq = 50.0;
@@ -61,8 +61,8 @@ public class PowerlineFilterTests
     [Fact]
     public void ProcessSample_With49HzInterference_ReducesInterference()
     {
-        // Arrange
-        var filter = new PowerlineFilterClass(SamplingFrequency);
+        // Arrange - use 0 lookahead for real-time test
+        var filter = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 0);
         double interferenceFreq = 49.0;
         
         // Generate samples with 49 Hz interference
@@ -82,8 +82,8 @@ public class PowerlineFilterTests
     [Fact]
     public void ProcessSample_With51HzInterference_ReducesInterference()
     {
-        // Arrange
-        var filter = new PowerlineFilterClass(SamplingFrequency);
+        // Arrange - use 0 lookahead for real-time test
+        var filter = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 0);
         double interferenceFreq = 51.0;
         
         // Generate samples with 51 Hz interference
@@ -103,8 +103,8 @@ public class PowerlineFilterTests
     [Fact]
     public void ProcessSample_ShortTransient_NoRinging()
     {
-        // Arrange
-        var filter = new PowerlineFilterClass(SamplingFrequency);
+        // Arrange - use 0 lookahead for real-time test
+        var filter = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 0);
         
         // Generate a short burst (transient) - 10ms of signal
         var output = new double[100]; // 50ms at 2kHz
@@ -246,8 +246,8 @@ public class PowerlineFilterTests
     [Fact]
     public void ProcessSample_VaryingFrequency_TracksCorrectly()
     {
-        // Arrange
-        var filter = new PowerlineFilterClass(SamplingFrequency);
+        // Arrange - use 0 lookahead for real-time test
+        var filter = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 0);
         
         // First apply 49 Hz - wait for filter to adapt
         var output49 = new double[1000];
@@ -800,5 +800,24 @@ public class PowerlineFilterTests
         
         if (sumA2 == 0 || sumB2 == 0) return 0;
         return sumAB / Math.Sqrt(sumA2 * sumB2);
+    }
+    
+    /// <summary>
+    /// Test: Different lookahead values give different delays.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithLookahead_SetsDelay()
+    {
+        // 0ms lookahead = 4 samples (minimum for IIR)
+        var filter0 = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 0);
+        Assert.Equal(4, filter0.Delay);
+        
+        // 10ms lookahead at 2kHz = 20 + 4 = 24 samples
+        var filter10 = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 10);
+        Assert.Equal(24, filter10.Delay);
+        
+        // 5ms lookahead = 10 + 4 = 14 samples
+        var filter5 = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 5);
+        Assert.Equal(14, filter5.Delay);
     }
 }
