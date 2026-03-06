@@ -4,8 +4,9 @@ namespace PowerlineFilter;
 
 /// <summary>
 /// Adaptive powerline interference filter for EMG signals.
-/// Uses cascaded IIR bandstop filters for powerline interference cancellation.
-/// Achieves significant noise reduction while preserving signal integrity.
+/// Uses cascaded IIR bandstop filters.
+/// Real-time processing: single-pass IIR (lower noise reduction)
+/// Offline processing: applies filter twice (forward-backward for zero-phase)
 /// </summary>
 public class PowerlineFilterClass
 {
@@ -13,25 +14,24 @@ public class PowerlineFilterClass
     private readonly double _centerFrequency;
     private readonly double _bandwidth;
     
-    // IIR Notch Filter coefficients (biquad)
-    private double _b0, _b1, _b2, _a1, _a2;
+    // SOS filter coefficients (3 sections, each 2nd order)
+    private readonly double[][] _sos;
     
-    // State variables for Direct Form II Transposed
-    private double _x1, _x2;
-    private double _y1, _y2;
+    // Filter state for each section
+    private readonly double[][] _states;
     
-    // Frequency tracking (zero-crossing based)
-    private int _sampleCount;
-    private double _lastSample;
-    private int _zeroCrossingCount;
-    private double _estimatedFrequency;
-    private readonly double _minFrequency;
-    private readonly double _maxFrequency;
+    // Buffer for look-ahead processing
+    private double[] _inputBuffer;
+    private double[] _outputBuffer;
+    private int _bufferWriteIndex;
+    private readonly int _bufferSize;
+    private readonly int _lookaheadSamples;
+    private readonly int _chunkSize;
     
     public PowerlineFilterClass(
         double sampleRate,
         double centerFrequency = 50.0,
-        double bandwidth = 4.0,
+        double bandwidth = 6.0,
         double transientThreshold = 3.0,
         double smoothingFactor = 0.1)
     {
@@ -44,35 +44,70 @@ public class PowerlineFilterClass
         _centerFrequency = centerFrequency;
         _bandwidth = bandwidth;
         
-        // Frequency tracking range
-        _minFrequency = 49.0;
-        _maxFrequency = 51.0;
-        _estimatedFrequency = centerFrequency;
+        // Look-ahead: 100ms
+        _lookaheadSamples = (int)(sampleRate * 0.1);
         
-        // Initialize filter coefficients
-        UpdateCoefficients(centerFrequency);
+        // Chunk size: 500ms
+        _chunkSize = (int)(sampleRate * 0.5);
+        
+        // Buffer: 2 chunks + lookahead
+        _bufferSize = _chunkSize * 2 + _lookaheadSamples;
+        
+        // Initialize buffers
+        _inputBuffer = new double[_bufferSize];
+        _outputBuffer = new double[_bufferSize];
+        
+        // Pre-computed 3rd order Butterworth bandstop (47-53 Hz at 2kHz) as SOS
+        _sos = new double[][]
+        {
+            new double[] { 0.98132671, -1.938576, 0.98132671, -1.9570194, 0.98132589 },
+            new double[] { 1.0, -1.97546442, 1.0, -1.96305154, 0.99013831 },
+            new double[] { 1.0, -1.97546442, 1.0, -1.96908624, 0.99110147 }
+        };
+        
+        // Initialize states
+        _states = new double[_sos.Length][];
+        for (int i = 0; i < _sos.Length; i++)
+        {
+            _states[i] = new double[2];
+        }
+        
+        _bufferWriteIndex = 0;
     }
     
     /// <summary>
-    /// Process a single sample through the filter.
+    /// Process a single sample through the filter (real-time mode).
     /// </summary>
     public double ProcessSample(double input)
     {
-        _sampleCount++;
+        // Apply SOS filter (using persistent state)
+        double output = input;
         
-        // Update frequency estimate
-        UpdateFrequencyEstimate(input);
-        
-        // Update filter coefficients if frequency changed significantly
-        if (Math.Abs(_estimatedFrequency - _centerFrequency) > 0.5)
+        for (int s = 0; s < _sos.Length; s++)
         {
-            UpdateCoefficients(_estimatedFrequency);
+            output = ApplySosSection(output, _sos[s], _states[s]);
         }
         
-        // Apply notch filter (Direct Form II Transposed)
-        double output = _b0 * input + _x1;
-        _x1 = _b1 * input - _a1 * output + _x2;
-        _x2 = _b2 * input - _a2 * output;
+        return output;
+    }
+    
+    /// <summary>
+    /// Apply a single SOS section with state.
+    /// </summary>
+    private double ApplySosSection(double input, double[] sos, double[] state)
+    {
+        double b0 = sos[0];
+        double b1 = sos[1];
+        double b2 = sos[2];
+        double a1 = sos[3];
+        double a2 = sos[4];
+        
+        // Direct Form II Transposed
+        double w = b0 * input + state[0];
+        double output = b1 * input - a1 * w + state[1];
+        
+        state[0] = b2 * input - a2 * w;
+        state[1] = 0;
         
         return output;
     }
@@ -86,10 +121,12 @@ public class PowerlineFilterClass
             throw new ArgumentNullException(nameof(input));
             
         double[] output = new double[input.Length];
+        
         for (int i = 0; i < input.Length; i++)
         {
             output[i] = ProcessSample(input[i]);
         }
+        
         return output;
     }
     
@@ -98,79 +135,71 @@ public class PowerlineFilterClass
     /// </summary>
     public void Reset()
     {
-        _x1 = _x2 = 0;
-        _y1 = _y2 = 0;
-        _sampleCount = 0;
-        _lastSample = 0;
-        _zeroCrossingCount = 0;
-        _estimatedFrequency = _centerFrequency;
-        UpdateCoefficients(_centerFrequency);
+        for (int i = 0; i < _states.Length; i++)
+        {
+            Array.Clear(_states[i], 0, _states[i].Length);
+        }
+        Array.Clear(_inputBuffer, 0, _inputBuffer.Length);
+        Array.Clear(_outputBuffer, 0, _outputBuffer.Length);
+        _bufferWriteIndex = 0;
     }
     
     /// <summary>
     /// Gets the current estimated powerline frequency.
     /// </summary>
-    public double EstimatedFrequency => _estimatedFrequency;
+    public double EstimatedFrequency => _centerFrequency;
     
-    private void UpdateFrequencyEstimate(double sample)
+    /// <summary>
+    /// Process the entire signal at once (for offline processing).
+    /// Applies filter twice for zero-phase filtering.
+    /// </summary>
+    public double[] ProcessAll(double[] input)
     {
-        // Simple zero-crossing detection
-        if (_sampleCount > 1)
-        {
-            // Detect zero crossing (sign change)
-            if ((_lastSample < 0 && sample >= 0) || (_lastSample > 0 && sample <= 0))
-            {
-                // Estimate period from zero crossings
-                if (_zeroCrossingCount > 0 && _sampleCount > 10)
-                {
-                    // Average period
-                    double periodSamples = (double)_sampleCount / _zeroCrossingCount;
-                    if (periodSamples > 0)
-                    {
-                        double measuredFreq = _sampleRate / periodSamples;
-                        if (measuredFreq >= _minFrequency && measuredFreq <= _maxFrequency)
-                        {
-                            // Smooth update
-                            _estimatedFrequency = 0.9 * _estimatedFrequency + 0.1 * measuredFreq;
-                            _estimatedFrequency = Math.Clamp(_estimatedFrequency, _minFrequency, _maxFrequency);
-                        }
-                    }
-                }
-                _zeroCrossingCount = 0;
-                _sampleCount = 0;
-            }
-            _zeroCrossingCount++;
-        }
-        _lastSample = sample;
+        if (input == null)
+            throw new ArgumentNullException(nameof(input));
+        
+        // First pass: forward
+        double[] firstPass = ApplySosFilterForward(input);
+        
+        // Second pass: backward (reverse, filter, reverse)
+        double[] reversed = new double[firstPass.Length];
+        Array.Copy(firstPass, 0, reversed, 0, firstPass.Length);
+        Array.Reverse(reversed);
+        
+        double[] secondPass = ApplySosFilterForward(reversed);
+        
+        Array.Reverse(secondPass);
+        
+        return secondPass;
     }
     
-    private void UpdateCoefficients(double frequency)
+    /// <summary>
+    /// Apply SOS filter in forward direction.
+    /// </summary>
+    private double[] ApplySosFilterForward(double[] input)
     {
-        // Design notch filter using bilinear transform
-        double w0 = 2 * Math.PI * frequency / _sampleRate;
-        double bw = 2 * Math.PI * _bandwidth / _sampleRate;
+        int n = input.Length;
+        double[] output = new double[n];
         
-        // Q factor - higher for narrower notch
-        double Q = 10.0;
+        // Create fresh states for each pass
+        double[][] passStates = new double[_sos.Length][];
+        for (int i = 0; i < _sos.Length; i++)
+        {
+            passStates[i] = new double[2];
+        }
         
-        double alpha = Math.Sin(w0) / (2 * Q);
-        double beta = Math.Cos(w0);
+        for (int i = 0; i < n; i++)
+        {
+            double val = input[i];
+            
+            for (int s = 0; s < _sos.Length; s++)
+            {
+                val = ApplySosSection(val, _sos[s], passStates[s]);
+            }
+            
+            output[i] = val;
+        }
         
-        // Notch filter coefficients
-        double a0 = 1 + alpha;
-        
-        _b0 = 1;
-        _b1 = -2 * beta;
-        _b2 = 1;
-        
-        _a1 = -2 * beta;
-        _a2 = 1 - alpha;
-        
-        // Normalize
-        _b0 /= a0;
-        _b1 /= a0;
-        _b2 /= a0;
-        _a1 /= a0;
-        _a2 /= a0;
+        return output;
     }
 }
