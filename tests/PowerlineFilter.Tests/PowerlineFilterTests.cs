@@ -485,4 +485,320 @@ public class PowerlineFilterTests
         
         Assert.True(reductionDb > 10, $"Noise reduction should be >10dB, was {reductionDb:F2}dB");
     }
+    
+    /// <summary>
+    /// Test: Noise at 49Hz.
+    /// </summary>
+    [Fact]
+    public void ProcessAll_With49HzNoise_ReducesNoise()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        int n = 10000;
+        double[] clean = new double[n];
+        double[] src = new double[n];
+        
+        for (int i = 0; i < n; i++)
+        {
+            double t = i / SamplingFrequency;
+            clean[i] = 1.0;
+            src[i] = clean[i] + 0.5 * Math.Sin(2 * Math.PI * 49 * t);
+        }
+        
+        double[] filtered = filter.ProcessAll(src);
+        
+        int skip = 500;
+        double noiseBefore = 0, noiseAfter = 0;
+        for (int i = skip; i < n; i++)
+        {
+            noiseBefore += (src[i] - clean[i]) * (src[i] - clean[i]);
+            noiseAfter += (filtered[i] - clean[i]) * (filtered[i] - clean[i]);
+        }
+        noiseBefore = Math.Sqrt(noiseBefore / (n - skip));
+        noiseAfter = Math.Sqrt(noiseAfter / (n - skip));
+        
+        double reductionDb = 20 * Math.Log10(noiseBefore / noiseAfter);
+        
+        Assert.True(reductionDb > 10, $"49Hz noise reduction should be >10dB, was {reductionDb:F2}dB");
+    }
+    
+    /// <summary>
+    /// Test: Noise at 51Hz.
+    /// </summary>
+    [Fact]
+    public void ProcessAll_With51HzNoise_ReducesNoise()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        int n = 10000;
+        double[] clean = new double[n];
+        double[] src = new double[n];
+        
+        for (int i = 0; i < n; i++)
+        {
+            double t = i / SamplingFrequency;
+            clean[i] = 1.0;
+            src[i] = clean[i] + 0.5 * Math.Sin(2 * Math.PI * 51 * t);
+        }
+        
+        double[] filtered = filter.ProcessAll(src);
+        
+        int skip = 500;
+        double noiseBefore = 0, noiseAfter = 0;
+        for (int i = skip; i < n; i++)
+        {
+            noiseBefore += (src[i] - clean[i]) * (src[i] - clean[i]);
+            noiseAfter += (filtered[i] - clean[i]) * (filtered[i] - clean[i]);
+        }
+        noiseBefore = Math.Sqrt(noiseBefore / (n - skip));
+        noiseAfter = Math.Sqrt(noiseAfter / (n - skip));
+        
+        double reductionDb = 20 * Math.Log10(noiseBefore / noiseAfter);
+        
+        Assert.True(reductionDb > 10, $"51Hz noise reduction should be >10dB, was {reductionDb:F2}dB");
+    }
+    
+    /// <summary>
+    /// Test: Multiple frequency noise (49, 50, 51 Hz combined).
+    /// </summary>
+    [Fact]
+    public void ProcessAll_WithMultipleFrequencies_ReducesNoise()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        int n = 10000;
+        double[] clean = new double[n];
+        double[] src = new double[n];
+        
+        for (int i = 0; i < n; i++)
+        {
+            double t = i / SamplingFrequency;
+            clean[i] = 1.0;
+            // Combined 49Hz + 50Hz + 51Hz
+            src[i] = clean[i] 
+                + 0.2 * Math.Sin(2 * Math.PI * 49 * t)
+                + 0.2 * Math.Sin(2 * Math.PI * 50 * t)
+                + 0.2 * Math.Sin(2 * Math.PI * 51 * t);
+        }
+        
+        double[] filtered = filter.ProcessAll(src);
+        
+        int skip = 500;
+        double noiseBefore = 0, noiseAfter = 0;
+        for (int i = skip; i < n; i++)
+        {
+            noiseBefore += (src[i] - clean[i]) * (src[i] - clean[i]);
+            noiseAfter += (filtered[i] - clean[i]) * (filtered[i] - clean[i]);
+        }
+        noiseBefore = Math.Sqrt(noiseBefore / (n - skip));
+        noiseAfter = Math.Sqrt(noiseAfter / (n - skip));
+        
+        double reductionDb = 20 * Math.Log10(noiseBefore / noiseAfter);
+        
+        Assert.True(reductionDb > 10, $"Multi-frequency noise reduction should be >10dB, was {reductionDb:F2}dB");
+    }
+    
+    /// <summary>
+    /// Test: Varying noise amplitude.
+    /// </summary>
+    [Fact]
+    public void ProcessAll_WithVaryingAmplitude_ReducesNoise()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        int n = 10000;
+        double[] clean = new double[n];
+        double[] src = new double[n];
+        
+        for (int i = 0; i < n; i++)
+        {
+            double t = i / SamplingFrequency;
+            clean[i] = 1.0;
+            
+            // Varying amplitude: 0.1 -> 0.5 -> 0.1
+            double amp = 0.1 + 0.4 * Math.Sin(2 * Math.PI * 0.5 * t); // 0.5 Hz modulation
+            src[i] = clean[i] + amp * Math.Sin(2 * Math.PI * 50 * t);
+        }
+        
+        double[] filtered = filter.ProcessAll(src);
+        
+        int skip = 500;
+        double noiseBefore = 0, noiseAfter = 0;
+        for (int i = skip; i < n; i++)
+        {
+            noiseBefore += (src[i] - clean[i]) * (src[i] - clean[i]);
+            noiseAfter += (filtered[i] - clean[i]) * (filtered[i] - clean[i]);
+        }
+        noiseBefore = Math.Sqrt(noiseBefore / (n - skip));
+        noiseAfter = Math.Sqrt(noiseAfter / (n - skip));
+        
+        double reductionDb = 20 * Math.Log10(noiseBefore / noiseAfter);
+        
+        Assert.True(reductionDb > 10, $"Varying amplitude noise reduction should be >10dB, was {reductionDb:F2}dB");
+    }
+    
+    /// <summary>
+    /// Test: Low amplitude signal with noise.
+    /// </summary>
+    [Fact]
+    public void ProcessAll_WithLowAmplitudeSignal_ReducesNoise()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        int n = 10000;
+        double[] clean = new double[n];
+        double[] src = new double[n];
+        
+        // Signal amplitude 0.01 (very small)
+        for (int i = 0; i < n; i++)
+        {
+            double t = i / SamplingFrequency;
+            clean[i] = 0.01 * Math.Sin(2 * Math.PI * 10 * t); // 10 Hz signal
+            src[i] = clean[i] + 0.5 * Math.Sin(2 * Math.PI * 50 * t); // 50 Hz noise
+        }
+        
+        double[] filtered = filter.ProcessAll(src);
+        
+        int skip = 500;
+        double noiseBefore = 0, noiseAfter = 0;
+        for (int i = skip; i < n; i++)
+        {
+            noiseBefore += (src[i] - clean[i]) * (src[i] - clean[i]);
+            noiseAfter += (filtered[i] - clean[i]) * (filtered[i] - clean[i]);
+        }
+        noiseBefore = Math.Sqrt(noiseBefore / (n - skip));
+        noiseAfter = Math.Sqrt(noiseAfter / (n - skip));
+        
+        double reductionDb = 20 * Math.Log10(noiseBefore / noiseAfter);
+        
+        Assert.True(reductionDb > 10, $"Low amplitude signal noise reduction should be >10dB, was {reductionDb:F2}dB");
+    }
+    
+    /// <summary>
+    /// Test: High frequency signal preserved (above 100 Hz).
+    /// </summary>
+    [Fact]
+    public void ProcessAll_PreservesHighFrequencySignal()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        int n = 10000;
+        double[] clean = new double[n];
+        double[] src = new double[n];
+        
+        // Signal at 200 Hz (should be preserved)
+        for (int i = 0; i < n; i++)
+        {
+            double t = i / SamplingFrequency;
+            clean[i] = 0.5 * Math.Sin(2 * Math.PI * 200 * t);
+            src[i] = clean[i] + 0.5 * Math.Sin(2 * Math.PI * 50 * t); // 50 Hz noise
+        }
+        
+        double[] filtered = filter.ProcessAll(src);
+        
+        int skip = 500;
+        
+        // Check signal preserved
+        double correlationBefore = CalculateCorrelation(clean.Skip(skip).ToArray(), src.Skip(skip).ToArray());
+        double correlationAfter = CalculateCorrelation(clean.Skip(skip).ToArray(), filtered.Skip(skip).ToArray());
+        
+        Assert.True(correlationAfter > 0.9, $"High frequency signal should be preserved, correlation was {correlationAfter:F4}");
+    }
+    
+    /// <summary>
+    /// Test: Low frequency signal preserved (below 20 Hz).
+    /// </summary>
+    [Fact]
+    public void ProcessAll_PreservesLowFrequencySignal()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        int n = 10000;
+        double[] clean = new double[n];
+        double[] src = new double[n];
+        
+        // Signal at 5 Hz (should be preserved)
+        for (int i = 0; i < n; i++)
+        {
+            double t = i / SamplingFrequency;
+            clean[i] = 0.5 * Math.Sin(2 * Math.PI * 5 * t);
+            src[i] = clean[i] + 0.5 * Math.Sin(2 * Math.PI * 50 * t);
+        }
+        
+        double[] filtered = filter.ProcessAll(src);
+        
+        int skip = 500;
+        
+        double correlationBefore = CalculateCorrelation(clean.Skip(skip).ToArray(), src.Skip(skip).ToArray());
+        double correlationAfter = CalculateCorrelation(clean.Skip(skip).ToArray(), filtered.Skip(skip).ToArray());
+        
+        Assert.True(correlationAfter > 0.9, $"Low frequency signal should be preserved, correlation was {correlationAfter:F4}");
+    }
+    
+    /// <summary>
+    /// Test: Empty array throws exception.
+    /// </summary>
+    [Fact]
+    public void ProcessAll_EmptyArray_ThrowsException()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        Assert.Throws<ArgumentNullException>(() => filter.ProcessAll(null));
+        Assert.Throws<ArgumentNullException>(() => filter.ProcessBlock(null));
+    }
+    
+    /// <summary>
+    /// Test: Reset clears state.
+    /// </summary>
+    [Fact]
+    public void Reset_ClearsState()
+    {
+        var filter = new PowerlineFilterClass(SamplingFrequency);
+        
+        // Process some samples
+        for (int i = 0; i < 1000; i++)
+        {
+            filter.ProcessSample(1.0 + 0.5 * Math.Sin(2 * Math.PI * 50 * i / SamplingFrequency));
+        }
+        
+        // Reset
+        filter.Reset();
+        
+        // Process zero signal
+        double[] output = new double[10];
+        for (int i = 0; i < 10; i++)
+        {
+            output[i] = filter.ProcessSample(0);
+        }
+        
+        // After reset, output should converge to zero
+        double maxAbs = 0;
+        for (int i = 5; i < 10; i++)
+        {
+            if (Math.Abs(output[i]) > maxAbs) maxAbs = Math.Abs(output[i]);
+        }
+        
+        Assert.True(maxAbs < 0.1, $"After reset, output should be near zero, was {maxAbs:F4}");
+    }
+    
+    private static double CalculateCorrelation(double[] a, double[] b)
+    {
+        if (a.Length != b.Length || a.Length == 0) return 0;
+        
+        double meanA = a.Average();
+        double meanB = b.Average();
+        
+        double sumAB = 0, sumA2 = 0, sumB2 = 0;
+        for (int i = 0; i < a.Length; i++)
+        {
+            double da = a[i] - meanA;
+            double db = b[i] - meanB;
+            sumAB += da * db;
+            sumA2 += da * da;
+            sumB2 += db * db;
+        }
+        
+        if (sumA2 == 0 || sumB2 == 0) return 0;
+        return sumAB / Math.Sqrt(sumA2 * sumB2);
+    }
 }
