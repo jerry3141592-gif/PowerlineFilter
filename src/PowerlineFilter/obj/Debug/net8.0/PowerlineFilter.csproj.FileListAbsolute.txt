@@ -9,3 +9,4 @@
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/refint/PowerlineFilter.dll
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.pdb
 /workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/ref/PowerlineFilter.dll
+/workspace/repo_temp/src/PowerlineFilter/obj/Debug/net8.0/PowerlineFilter.sourcelink.json

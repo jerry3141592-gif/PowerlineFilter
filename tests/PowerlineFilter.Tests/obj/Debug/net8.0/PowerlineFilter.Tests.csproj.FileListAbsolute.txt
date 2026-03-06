@@ -99,3 +99,4 @@
 /workspace/repo_temp/tests/PowerlineFilter.Tests/obj/Debug/net8.0/PowerlineFilter.Tests.pdb
 /workspace/repo_temp/tests/PowerlineFilter.Tests/obj/Debug/net8.0/PowerlineFilter.Tests.genruntimeconfig.cache
 /workspace/repo_temp/tests/PowerlineFilter.Tests/obj/Debug/net8.0/ref/PowerlineFilter.Tests.dll
+/workspace/repo_temp/tests/PowerlineFilter.Tests/obj/Debug/net8.0/PowerlineFilter.Tests.sourcelink.json

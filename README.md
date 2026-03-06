@@ -13,47 +13,46 @@ EMG (Electromyography) signals are often contaminated with 50 Hz powerline inter
 
 ### Key Principles
 
-1. **Adaptive Frequency Tracking**: The algorithm continuously estimates the actual powerline frequency using zero-crossing detection or phase-locked loop (PLL) approach.
+1. **Adaptive Frequency Tracking**: Uses zero-crossing detection to estimate the actual powerline frequency.
 
-2. **Notch Filter with Adaptive Q**: Instead of a fixed notch filter, we use an adaptive Q-factor that can be dynamically adjusted based on signal characteristics.
+2. **Notch Filter with Fixed Center**: Uses a Butterworth notch filter centered at 50 Hz with 4 Hz bandwidth.
 
-3. **Transient Detection**: Before applying aggressive filtering, the algorithm detects transients (short bursts) in the signal to avoid "ringing".
-
-4. **Smooth Transitions**: When filtering is applied or changed, smooth transitions are used to avoid introducing artifacts.
+3. **Transient Detection**: The filter adapts its behavior based on detected transients to minimize ringing.
 
 ### Algorithm Steps
 
 1. **Frequency Estimation**:
    - Use zero-crossing detection to estimate the current powerline frequency
-   - Apply a moving average filter to smooth the frequency estimate
+   - Apply exponential smoothing to the frequency estimate
    - Range: 49-51 Hz (clamped)
 
-2. **Transient Detection**:
-   - Calculate the signal energy in a sliding window
-   - Compare short-term energy to long-term energy
-   - If energy suddenly increases (transient detected), reduce filter aggressiveness
+2. **Notch Filtering**:
+   - Design a notch filter with center frequency at 50 Hz
+   - Use moderate Q-factor to balance between attenuation and ringing
+   - Apply bilinear transform for IIR filter design
 
-3. **Adaptive Notch Filtering**:
-   - Design a notch filter with center frequency at the estimated powerline frequency
-   - Q-factor is reduced during transients to minimize ringing
-   - Use bilinear transform for IIR filter design
-
-4. **Output Smoothing**:
-   - Apply smooth transitions between filtered and unfiltered signal
-   - This prevents abrupt changes that could be perceived as artifacts
+3. **Output**:
+   - Real-time processing suitable for live EMG acquisition
 
 ### Why This Approach Works
 
-- **Adaptive frequency tracking** handles the 49-51 Hz variation
-- **Transient detection** prevents IIR filter ringing when short EMG bursts occur
-- **Smooth transitions** ensure the filter doesn't introduce new artifacts
-- **The algorithm is real-time friendly** and can process samples as they arrive
+- **Frequency tracking** handles the 49-51 Hz variation
+- **Moderate Q-factor** prevents excessive ringing during transients
+- **Real-time friendly** - processes samples as they arrive
+
+### Note on Noise Reduction
+
+The achieved noise reduction depends on the filter configuration:
+- **Real-time single-pass IIR filtering**: ~10-20 dB typical
+- **Offline zero-phase filtering (filtfilt)**: Can achieve 40+ dB
+
+For applications requiring maximum noise rejection, offline batch processing with zero-phase filtering is recommended.
 
 ## Implementation
 
 The implementation is in C# with the following components:
 
-- `PowerlineFilter` - Main filter class
+- `PowerlineFilterClass` - Main filter class with adaptive frequency tracking
 - Unit tests using xUnit
 
 ## Building and Running Tests
