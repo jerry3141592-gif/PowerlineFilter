@@ -340,10 +340,21 @@ public class PowerlineFilterTests
     [Fact]
     public void Delay_DefaultValue_IsCorrect()
     {
-        // 20ms lookahead at 2kHz = 40 samples
+        // Default lookahead is 0ms for single-pass filter
         var filter = new PowerlineFilterClass(SamplingFrequency);
         
-        // Default lookahead is 20ms = 40 samples at 2kHz
+        Assert.Equal(0, filter.Delay);
+    }
+    
+    /// <summary>
+    /// Test that Delay property returns correct value with lookahead.
+    /// </summary>
+    [Fact]
+    public void Delay_WithLookahead_IsCorrect()
+    {
+        // 20ms lookahead at 2kHz = 40 samples
+        var filter = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 20);
+        
         Assert.Equal(40, filter.Delay);
     }
     
