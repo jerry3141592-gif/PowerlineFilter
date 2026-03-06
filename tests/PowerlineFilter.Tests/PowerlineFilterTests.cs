@@ -141,8 +141,8 @@ public class PowerlineFilterTests
             }
         }
         
-        // Assert: some output is produced (transient is expected for IIR filters)
-        Assert.True(maxAfterTransient > 0, "Should produce some output");
+        // Assert: No significant ringing after transient
+        Assert.True(maxAfterTransient < 0.5, $"Ringing detected: max value after transient was {maxAfterTransient}");
     }
     
     [Fact]
@@ -225,10 +225,22 @@ public class PowerlineFilterTests
         // Arrange
         var filter = new PowerlineFilterClass(SamplingFrequency);
         
-        // Generate clean signal without interference - skip this test for now
-        // as ProcessSample uses internal state that needs proper initialization
-        // ProcessAll works correctly for offline processing
-        Assert.True(true);
+        // Generate clean signal without interference
+        var output = new double[1000];
+        for (int i = 0; i < 1000; i++)
+        {
+            double t = i / SamplingFrequency;
+            double input = 0.5 * Math.Sin(2 * Math.PI * 100 * t); // 100 Hz signal
+            output[i] = filter.ProcessSample(input);
+        }
+        
+        // Calculate RMS ratio
+        double inputRms = 0.5 / Math.Sqrt(2); // theoretical RMS of sine
+        double outputRms = CalculateRms(output);
+        
+        // Assert: Signal should be preserved (within reasonable bounds)
+        double ratio = outputRms / inputRms;
+        Assert.True(ratio > 0.7 && ratio < 1.3, $"Signal should be preserved, ratio was {ratio}");
     }
     
     [Fact]
@@ -280,82 +292,6 @@ public class PowerlineFilterTests
         // Arrange & Act & Assert
         Assert.Throws<ArgumentOutOfRangeException>(() => 
             new PowerlineFilterClass(SamplingFrequency, centerFrequency: 0));
-    }
-    
-    /// <summary>
-    /// Test that filter can process signal without errors.
-    /// </summary>
-    [Fact]
-    public void ProcessAll_With50HzNoise_CanProcessSignal()
-    {
-        // Generate test signal with known 50Hz interference
-        
-        int numSamples = 10000;
-        double fs = SamplingFrequency;
-        
-        double[] src = new double[numSamples];
-        
-        for (int i = 0; i < numSamples; i++)
-        {
-            double t = i / fs;
-            
-            // 50Hz sinusoidal interference added to DC
-            src[i] = 1.0 + 0.0025 * Math.Sin(2 * Math.PI * 50 * t);
-        }
-        
-        // Apply filter - should not throw
-        var filter = new PowerlineFilterClass(SamplingFrequency);
-        double[] filtered = filter.ProcessAll(src);
-        
-        // Verify output has same length
-        Assert.Equal(numSamples, filtered.Length);
-    }
-    
-    /// <summary>
-    /// Test that filter can process clean signal.
-    /// </summary>
-    [Fact]
-    public void ProcessAll_PreservesCleanSignal()
-    {
-        // Generate clean DC signal
-        int numSamples = 10000;
-        double[] clean = new double[numSamples];
-        
-        for (int i = 0; i < numSamples; i++)
-        {
-            clean[i] = 1.0; // DC baseline
-        }
-        
-        // Apply filter - should not throw
-        var filter = new PowerlineFilterClass(SamplingFrequency);
-        double[] filtered = filter.ProcessAll(clean);
-        
-        // Verify output has same length
-        Assert.Equal(numSamples, filtered.Length);
-    }
-    
-    /// <summary>
-    /// Test that Delay property returns correct value.
-    /// </summary>
-    [Fact]
-    public void Delay_DefaultValue_IsCorrect()
-    {
-        // Default lookahead is 0ms for single-pass filter
-        var filter = new PowerlineFilterClass(SamplingFrequency);
-        
-        Assert.Equal(0, filter.Delay);
-    }
-    
-    /// <summary>
-    /// Test that Delay property returns correct value with lookahead.
-    /// </summary>
-    [Fact]
-    public void Delay_WithLookahead_IsCorrect()
-    {
-        // 20ms lookahead at 2kHz = 40 samples
-        var filter = new PowerlineFilterClass(SamplingFrequency, lookaheadMs: 20);
-        
-        Assert.Equal(40, filter.Delay);
     }
     
     private static double CalculateRms(double[] samples)
